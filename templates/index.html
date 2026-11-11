@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UPI Fraud Shield Simulator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="hero-panel">
+        <div class="brand-chip">NPCI-style payment simulator</div>
+        <h1>UPI Fraud Shield</h1>
+        <p class="hero-copy">
+          Simulate wallet payments with behavioral anomaly detection, live device recognition,
+          secure UPI PIN checks, and geolocation-based fraud decisions.
+        </p>
+        <div class="hero-cards">
+          <div class="hero-card">
+            <span>Decision engine</span>
+            <strong>Allow / OTP / Block</strong>
+          </div>
+          <div class="hero-card">
+            <span>Signals</span>
+            <strong>Amount, device, time, location</strong>
+          </div>
+          <div class="hero-card">
+            <span>Onboarding</span>
+            <strong>Email OTP plus generated UPI ID</strong>
+          </div>
+        </div>
+        <div class="demo-users">
+          <h3>Registration flow</h3>
+          <p>Register with name, email, password, bank handle, and your UPI PIN.</p>
+          <p>Payments use your browser device identity and live geolocation automatically.</p>
+        </div>
+      </aside>
+
+      <main class="phone-frame">
+        <section id="auth-view" class="screen active">
+          <div class="tabs">
+            <button id="login-tab" class="tab active">Login</button>
+            <button id="register-tab" class="tab">Register</button>
+          </div>
+
+          <form id="login-form" class="panel">
+            <h2>Welcome back</h2>
+            <label>Email</label>
+            <input type="email" name="email" placeholder="name@example.com" required />
+            <label>Password</label>
+            <div class="password-field">
+              <input type="password" name="password" placeholder="Password" required />
+              <button type="button" class="toggle-visibility" data-target-name="password">Show</button>
+            </div>
+            <button type="submit" class="primary-btn">Login</button>
+            <button type="button" id="open-password-reset-btn" class="ghost-btn full-width">Forgot Password?</button>
+          </form>
+
+          <form id="register-form" class="panel hidden">
+            <h2>Create wallet</h2>
+            <label>Name</label>
+            <input type="text" name="name" placeholder="Full name" required />
+            <label>Email</label>
+            <input type="email" name="email" placeholder="name@example.com" required />
+            <label>Password</label>
+            <div class="password-field">
+              <input type="password" name="password" id="register-password" placeholder="Choose a password" required />
+              <button type="button" class="toggle-visibility" data-target-id="register-password">Show</button>
+            </div>
+            <label>Create UPI PIN</label>
+            <div class="password-field">
+              <input type="password" name="upi_pin" id="register-upi-pin" maxlength="6" inputmode="numeric" placeholder="4 or 6 digit UPI PIN" required />
+              <button type="button" class="toggle-visibility" data-target-id="register-upi-pin">Show</button>
+            </div>
+            <label>Bank handle</label>
+            <select name="bank_handle" id="bank-handle-input" required>
+              <option value="">Select bank handle</option>
+            </select>
+            <button type="submit" class="primary-btn">Send OTP</button>
+          </form>
+
+          <form id="otp-form" class="panel hidden">
+            <h2>Verify email OTP</h2>
+            <p class="muted">Your UPI ID will be generated after OTP verification.</p>
+            <label>Email</label>
+            <input type="email" id="otp-email" placeholder="name@example.com" readonly />
+            <label>OTP</label>
+            <input type="text" id="registration-otp" maxlength="6" placeholder="Enter 6 digit OTP" required />
+            <button type="submit" class="primary-btn">Verify and Register</button>
+            <button type="button" id="back-to-register-btn" class="ghost-btn full-width">Back</button>
+          </form>
+
+          <form id="password-reset-form" class="panel hidden">
+            <h2>Reset Password</h2>
+            <p class="muted">We will email you an OTP to securely reset your password.</p>
+            <label>Email</label>
+            <input type="email" id="password-reset-email" placeholder="name@example.com" required />
+            <button type="button" id="send-password-reset-otp-btn" class="primary-btn">Send Reset OTP</button>
+            <label>OTP</label>
+            <input type="text" id="password-reset-otp" maxlength="6" placeholder="Enter 6 digit OTP" />
+            <label>New Password</label>
+            <div class="password-field">
+              <input type="password" id="new-password" placeholder="Enter new password" />
+              <button type="button" class="toggle-visibility" data-target-id="new-password">Show</button>
+            </div>
+            <button type="submit" class="secondary-btn">Reset Password</button>
+            <button type="button" id="back-to-login-btn" class="ghost-btn full-width">Back to Login</button>
+          </form>
+        </section>
+
+        <section id="dashboard-view" class="screen hidden">
+          <div class="topbar">
+            <div>
+              <span class="eyebrow">Wallet holder</span>
+              <h2 id="user-name">User</h2>
+              <p id="user-upi" class="muted"></p>
+            </div>
+            <button id="logout-btn" class="ghost-btn">Logout</button>
+          </div>
+
+          <div class="balance-card">
+            <span>Available balance</span>
+            <strong id="balance-amount">Rs 0</strong>
+            <div class="balance-actions">
+              <input id="add-money-input" type="number" min="1" placeholder="Add money amount" />
+              <button id="add-money-btn" class="secondary-btn">Add Money</button>
+            </div>
+          </div>
+
+          <div class="mini-grid">
+            <div class="info-card">
+              <span>Behavior average</span>
+              <strong id="avg-amount">Rs 0</strong>
+            </div>
+            <div class="info-card">
+              <span>Known devices</span>
+              <strong id="known-devices">0</strong>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-head">
+              <h3>Send money</h3>
+              <span class="muted">Enter exact UPI ID or exact name</span>
+            </div>
+            <form id="payment-form">
+              <label>Recipient</label>
+              <input id="recipient-input" type="text" placeholder="user_id or name" required />
+
+              <label>Amount</label>
+              <input id="amount-input" type="number" min="1" step="0.01" placeholder="2500" required />
+
+              <label>UPI PIN</label>
+              <div class="password-field">
+                <input id="upi-pin-input" type="password" maxlength="6" inputmode="numeric" placeholder="Enter UPI PIN" required />
+                <button type="button" class="toggle-visibility" data-target-id="upi-pin-input">Show</button>
+              </div>
+
+              <button type="button" id="open-upi-pin-reset-btn" class="ghost-btn full-width">Forgot UPI PIN?</button>
+
+              <div class="device-card">
+                <span class="muted">Current device ID</span>
+                <strong id="device-id-display"></strong>
+                <p id="location-status" class="muted">Location will be requested when you tap Pay Now.</p>
+              </div>
+
+              <button type="submit" class="primary-btn">Pay Now</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="section-head">
+              <h3>Fraud analysis result</h3>
+              <span class="muted">Latest payment decision</span>
+            </div>
+            <div id="result-card" class="result-card empty">
+              <p>Run a payment to see the decision, score, and reasons.</p>
+            </div>
+            <div id="transaction-otp-box" class="otp-approval hidden">
+              <label>Enter transaction OTP</label>
+              <div class="otp-row">
+                <input id="transaction-otp-input" type="text" maxlength="6" placeholder="Enter 6 digit OTP" />
+                <button id="verify-transaction-otp-btn" type="button" class="secondary-btn compact-btn">Verify OTP</button>
+              </div>
+              <p class="muted">When risk is between 50% and 80%, an OTP is sent to your registered email.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-head">
+              <h3>Recent transactions</h3>
+              <span class="muted">Outgoing and incoming</span>
+            </div>
+            <div id="transaction-list" class="transaction-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="section-head">
+              <h3>Spending pulse</h3>
+              <span class="muted">Last eight amounts</span>
+            </div>
+            <div id="spending-chart" class="spending-chart"></div>
+          </div>
+
+          <div class="panel danger-panel">
+            <div class="section-head">
+              <h3>Delete account</h3>
+              <span class="muted">This action is irreversible</span>
+            </div>
+            <p class="muted">Deleting your account removes your profile, transaction history, and behavior data.</p>
+            <button id="open-delete-modal-btn" class="danger-btn">Delete Account</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="delete-modal" class="modal hidden">
+      <div class="modal-card">
+        <h3>Delete account permanently?</h3>
+        <p class="muted">This action is irreversible. Confirm with your password and UPI PIN.</p>
+        <form id="delete-account-form">
+          <label>Password</label>
+          <div class="password-field">
+            <input id="delete-password" type="password" placeholder="Enter password" required />
+            <button type="button" class="toggle-visibility" data-target-id="delete-password">Show</button>
+          </div>
+          <label>UPI PIN</label>
+          <div class="password-field">
+            <input id="delete-upi-pin" type="password" maxlength="6" inputmode="numeric" placeholder="Enter UPI PIN" required />
+            <button type="button" class="toggle-visibility" data-target-id="delete-upi-pin">Show</button>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="cancel-delete-btn" class="ghost-btn">Cancel</button>
+            <button type="submit" class="danger-btn">Delete Permanently</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="upi-pin-reset-modal" class="modal hidden">
+      <div class="modal-card">
+        <h3>Reset UPI PIN</h3>
+        <p class="muted">We will email an OTP to your registered email and then let you set a new UPI PIN.</p>
+        <form id="upi-pin-reset-form">
+          <label>Email</label>
+          <input type="email" id="pin-reset-email" placeholder="name@example.com" readonly />
+          <button type="button" id="send-pin-reset-otp-btn" class="primary-btn">Send Reset OTP</button>
+          <label>OTP</label>
+          <input type="text" id="pin-reset-otp" maxlength="6" placeholder="Enter 6 digit OTP" />
+          <label>New UPI PIN</label>
+          <div class="password-field">
+            <input type="password" id="new-upi-pin" maxlength="6" inputmode="numeric" placeholder="4 or 6 digit UPI PIN" />
+            <button type="button" class="toggle-visibility" data-target-id="new-upi-pin">Show</button>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="cancel-upi-pin-reset-btn" class="ghost-btn">Cancel</button>
+            <button type="submit" class="secondary-btn">Reset UPI PIN</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="transaction-detail-modal" class="modal hidden">
+      <div class="modal-card">
+        <h3>Transaction details</h3>
+        <div id="transaction-detail-body" class="detail-body"></div>
+        <div class="modal-actions single-action">
+          <button type="button" id="close-transaction-detail-btn" class="ghost-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
